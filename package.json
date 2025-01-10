@@ -1,5 +1,5 @@
 {
-    "name": "JclNew",
+    "name": "jclNew",
     "description": "Please enter a brief description here",
     "version": "0.0.1",
     "files": [
@@ -19,19 +19,20 @@
     },
     "dependencies": {
         "langium": "~3.3.0",
+        "ode": "^0.0.3",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",
-        "@typescript-eslint/parser": "~7.3.1",
+        "@types/vscode": "~1.67.0",
         "@typescript-eslint/eslint-plugin": "~7.3.1",
+        "@typescript-eslint/parser": "~7.3.1",
+        "concurrently": "~8.2.1",
+        "esbuild": "~0.20.2",
         "eslint": "~8.57.0",
         "langium-cli": "~3.3.0",
         "typescript": "~5.1.6",
-        "@types/vscode": "~1.67.0",
-        "concurrently": "~8.2.1",
-        "esbuild": "~0.20.2",
         "vitest": "~1.4.0"
     },
     "volta": {
@@ -53,7 +54,9 @@
                     "Job Control Language",
                     "job-control-language"
                 ],
-                "extensions": [".jcl"],
+                "extensions": [
+                    ".jcl"
+                ],
                 "configuration": "./language-configuration.json"
             }
         ],

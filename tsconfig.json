@@ -17,13 +17,5 @@
         "forceConsistentCasingInFileNames": true,
         "rootDir": ".",
         "noEmit": true
-    },
-    "include": [
-        "src/**/*.ts",
-        "test/**/*.ts"
-    ],
-    "exclude": [
-        "out",
-        "node_modules"
-    ]
+    }
 }

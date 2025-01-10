@@ -4,14 +4,14 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build job-control-language",
-            "command": "npm run langium:generate && npm run build",
+            "label": "Build jcl",
+            "command": "npm run build",
             "type": "shell",
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Langium: Generate grammar and build the job-control-language language",
+            "detail": "Langium: Generate grammar and build the jcl language",
             "icon": {
                 "color": "terminal.ansiGreen",
                 "id": "server-process"

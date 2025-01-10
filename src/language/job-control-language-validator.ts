@@ -37,14 +37,14 @@ export class JobControlLanguageValidator {
     // }
     checkCardNameLength(card: JobStatement|ExecStatement|DDStatement, accept: ValidationAcceptor): void {
         console.log(card.name, card.$type)
-        if (card.name) {
-            if (card.name.length > 10) {
+        if (card.name.name) {
+            if (card.name.name.length > 10) {
                 accept('warning', 'Jcl card name should be max 8 char', {node: card, property: 'name' });
             }
         }
     }
 
-    checkDuplicateParameterNames(card: DDParameters|ExecParameters|JobParameters, accept: ValidationAcceptor): void{
+    checkDuplicateParameterNames(card: JobParameters|DDParameters|ExecParameters, accept: ValidationAcceptor): void{
         if (card){
             const reported = new Set();
             card.keyword.forEach(d =>{
