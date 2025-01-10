@@ -1,6 +1,8 @@
 import type { ValidationAcceptor, ValidationChecks } from 'langium';
 import type { JobControlLanguageAstType, JobStatement, ExecStatement, DDStatement, DDParameters, ExecParameters, JobParameters } from './generated/ast.js';
 import type { JobControlLanguageServices } from './job-control-language-module.js';
+//import { JclLexer } from '../parser/jcl-parser.js';
+
 
 
 /**
@@ -12,7 +14,7 @@ export function registerValidationChecks(services: JobControlLanguageServices) {
     const checks: ValidationChecks<JobControlLanguageAstType> = {
         JobStatement: validator.checkCardNameLength,
         ExecStatement: validator.checkCardNameLength,
-        DDStatement: validator.checkCardNameLength,
+        DDStatement: validator.checkCardNameLength, 
         JobParameters: validator.checkDuplicateParameterNames,
         DDParameters : validator.checkDuplicateParameterNames,
         ExecParameters: validator.checkDuplicateParameterNames
@@ -28,15 +30,16 @@ export class JobControlLanguageValidator {
     // checkStartLine(card:JobStatement|ExecStatement|DDStatement, acceptor: ValidationAcceptor) :void{
     //     if (card){
     //         if (card.$document?.textDocument.positionAt(0).character !== 1){
+    //             acceptor('warning','Jcl line should start with // from the 1st position',{node: card, property: 'start'})
 
     //         }
     //     }
     // }
     checkCardNameLength(card: JobStatement|ExecStatement|DDStatement, accept: ValidationAcceptor): void {
-        console.log(card.$document?.textDocument.positionAt(0).character)
-        if (card) {
-            if (card.name.length > 8) {
-                accept('warning', `Jcl card name should be max 8 char ${card.$document?.textDocument.positionAt(0).character}`, { node: card, property: 'name' });
+        console.log(card.name, card.$type)
+        if (card.name) {
+            if (card.name.length > 10) {
+                accept('warning', 'Jcl card name should be max 8 char', {node: card, property: 'name' });
             }
         }
     }

@@ -1,23 +1,21 @@
 grammar JobControlLanguage
 
 entry JclProgram:
-    (jclStatement+=Statement)+;
-
-Statement: job=JobStatement 
-    exec=ExecStatement 
-    dd+=DDStatement+ ;
+    job=JobStatement 
+    exec+=ExecStatement
+    (exec+=ExecStatement | dd+= DDStatement )*;
 
 JobStatement:
-    start=START_STATEMENT
-    name=ID
+    name=START
     'JOB' 
     param = JobParameters
     comment=ID?
+    end=NL
     ;
 
 JobParameters: 
     (positional = PositionalJobParams)?
-    (keyword += KeywordJobParams (',' ((EOL CONTINUE_STATEMENT keyword+= KeywordJobParams) | keyword+= KeywordJobParams))* );
+    (keyword += KeywordJobParams (',' ((NL CONTINUE_STATEMENT keyword+= KeywordJobParams) | keyword+= KeywordJobParams))* );
 
 PositionalJobParams: 
     (account = ID ',')?
@@ -31,17 +29,16 @@ KeywordJobParams:
     value=ID;
 
 ExecStatement:
-    EOL
-    start=START_STATEMENT
-    name=ID
+    name=START
     'EXEC'
     param = ExecParameters
     comment=ID?
+    end=NL?
     ;
 
 ExecParameters:
     positional = PositionalExecParameter ','
-    (keyword += KeywordExecParameters (',' ((EOL CONTINUE_STATEMENT keyword+= KeywordExecParameters) | keyword+= KeywordExecParameters))* );    
+    (keyword += KeywordExecParameters (',' ((NL CONTINUE_STATEMENT keyword+= KeywordExecParameters) | keyword+= KeywordExecParameters))* );    
 
 
 
@@ -59,16 +56,15 @@ PositionalExecParameter:
 
 
 DDStatement:
-    EOL
-    start=START_STATEMENT
-    name=ID
+    name=START
     'DD'
-    param=DDParameters
+    param=(DDParameters | InlineDDParameters)
+    end=NL?
     ;
 
 DDParameters:
     positional = PositionalDDParameter ','
-    (keyword += KeywordDDParameters (',' ((EOL CONTINUE_STATEMENT keyword+= KeywordDDParameters) | keyword+= KeywordDDParameters))* );    
+    (keyword += KeywordDDParameters (',' ((NL CONTINUE_STATEMENT keyword+= KeywordDDParameters) | keyword+= KeywordDDParameters))* );    
 
 
 PositionalDDParameter:
@@ -79,6 +75,10 @@ PositionalDDParameter:
     value=ID
     ;
 
+InlineDDParameters:
+    name=('*'|'DATA')
+    (NL
+    value+=ID+)*;
 
 KeywordDDParameters:
     name=(
@@ -88,10 +88,9 @@ KeywordDDParameters:
     '='
     paramValue=ID;
 
-
-hidden terminal WS: /\s+/;
-terminal CONTINUE_STATEMENT: /\/\/\s{10}/;
-terminal START_STATEMENT: /\/\//;
-terminal EOL: /\r?\n/;
+terminal CONTINUE_STATEMENT: /\/\/\s{1,10}/;
+terminal START: /\/\/[_a-zA-Z]{1,8}/;
 terminal ID: /[_a-zA-Z][\w_]*/;
-hidden terminal SL_COMMENT: /\/\/\*/;
+hidden terminal COMMENT: /\/\/\*.*/;
+hidden terminal WS: /\s+/;
+terminal NL: /\s*[\r?\n]+/;

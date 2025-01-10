@@ -3,6 +3,7 @@ import { createDefaultModule, createDefaultSharedModule, type DefaultSharedModul
 import { JobControlLanguageGeneratedModule, JobControlLanguageGeneratedSharedModule } from './generated/module.js';
 import { JobControlLanguageValidator, registerValidationChecks } from './job-control-language-validator.js';
 import { JclLexer } from '../parser/jcl-parser.js';
+import { JclDocumentValidator } from './job-control-language-document-validator.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -26,10 +27,11 @@ export type JobControlLanguageServices = LangiumServices & JobControlLanguageAdd
  */
 export const JobControlLanguageModule: Module<JobControlLanguageServices, PartialLangiumServices & JobControlLanguageAddedServices> = {
     validation: {
-        JobControlLanguageValidator: () => new JobControlLanguageValidator()
+        JobControlLanguageValidator: () => new JobControlLanguageValidator(),
+        DocumentValidator: services => new JclDocumentValidator(services)
     },
     parser: {
-        Lexer: services => new JclLexer(services)
+       Lexer: services => new JclLexer(services)
     }
 
 };
