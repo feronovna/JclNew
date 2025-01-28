@@ -68,8 +68,5 @@
             }
         ]
     },
-    "activationEvents": [
-        "onLanguage:job-control-language"
-    ],
     "main": "./out/extension/main.cjs"
 }

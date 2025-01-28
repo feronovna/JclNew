@@ -4,6 +4,13 @@ import { JobControlLanguageGeneratedModule, JobControlLanguageGeneratedSharedMod
 import { JobControlLanguageValidator, registerValidationChecks } from './job-control-language-validator.js';
 import { JclLexer } from '../parser/jcl-parser.js';
 import { JclDocumentValidator } from './job-control-language-document-validator.js';
+//import { JclNameProvider} from '../references/jcl-name-provider.js';
+//import { JclReferences } from '../references/jcl-references.js';
+//import { JclScopeComputation } from '../references/jcl-scope-computation.js';
+import { JclScopeProvider } from '../references/jcl-scope-provider.js';
+//import { JclDocumentationProvider } from '../documentation/jcl-documentation-provider.js';
+import { JclSemanticTokenProvider } from '../lsp/jcl-semantic-highlighting.js';
+import { JclCompletionProvider } from '../lsp/jcl-completion-provider.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -26,14 +33,26 @@ export type JobControlLanguageServices = LangiumServices & JobControlLanguageAdd
  * selected services, while the custom services must be fully specified.
  */
 export const JobControlLanguageModule: Module<JobControlLanguageServices, PartialLangiumServices & JobControlLanguageAddedServices> = {
+    // documentation: {
+    //     DocumentationProvider: services => new JclDocumentationProvider(services)
+    // },
     validation: {
         JobControlLanguageValidator: () => new JobControlLanguageValidator(),
         DocumentValidator: services => new JclDocumentValidator(services)
     },
     parser: {
        Lexer: services => new JclLexer(services)
+    },
+    references: {
+        //ScopeComputation: services => new JclScopeComputation(services)
+        ScopeProvider: services => new JclScopeProvider(services)
+        //NameProvider: () => new JclNameProvider(),
+        //References: services => new JclReferences(services)
+    },
+    lsp: {
+        SemanticTokenProvider: services => new JclSemanticTokenProvider(services),
+        CompletionProvider: services => new JclCompletionProvider(services)
     }
-
 };
 
 /**

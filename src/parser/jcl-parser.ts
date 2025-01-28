@@ -30,14 +30,17 @@ export class JclLexer extends DefaultLexer {
                 } else if (line.endsWith('\n')) {
                     eol = '\n';
                 }
-                let newLine = 'INLINE'+eol;
+
+                // let newLine = '%'.repeat(72-eol.length)+eol;
+                let newLine = '%'.repeat(70)+eol;
                 return newLine;
+                
             };
         }));
         const adjustedText = adjustedLines.join('');
         const chevrotainResult = this.chevrotainLexer.tokenize(adjustedText);
         const tokens: IToken[] = chevrotainResult.tokens;
-        const re = new RegExp("\/(\/|\*)");
+        const re = new RegExp("\/\/");
         for (const token of tokens){
             if (re.test(token.image) && token.startColumn!==1){
                 const error: ILexingError = {
@@ -64,7 +67,7 @@ export class JclLexer extends DefaultLexer {
             }
         }
         if (this.tokenBuilder.flushLexingReport){
-            const report : LexingDiagnostic[]= this.tokenBuilder.flushLexingReport(text).diagnostics;
+            const report : LexingDiagnostic[]= this.tokenBuilder.flushLexingReport(adjustedText).diagnostics;
             for (const re of report){
                 re.column
             }
@@ -74,7 +77,7 @@ export class JclLexer extends DefaultLexer {
             tokens: chevrotainResult.tokens,
             errors: chevrotainResult.errors,
             hidden: chevrotainResult.groups.hidden ?? [],
-            report: this.tokenBuilder.flushLexingReport?.(text)
+            report: this.tokenBuilder.flushLexingReport?.(adjustedText)
         };
     }
    

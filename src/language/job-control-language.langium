@@ -2,15 +2,21 @@ grammar JobControlLanguage
 
 entry JclProgram:
     job=JobStatement 
-    jobparm=JobparmStatement 
+    jobparm=JobparmStatement?
     set+= SetStatement?
-    exec+=ExecStatement
-    dd+=DDStatement
-    (exec+=ExecStatement | (dd+= DDStatement) | set+= SetStatement)*;
+    (step+=JobStep|step+=ConditionStatements|set+=SetStatement)+
+    ;
+
+
+JobStep:
+    exec=ExecStatement
+    dd+=DDStatement*
+    ;
 
 JobStatement:
-    name=Start
-    'JOB' 
+    '//'
+    name=ID
+    oper='JOB' 
     param = JobParameters
     comment=ID?
     ;
@@ -74,7 +80,7 @@ Jeslog:
 Jobrc:
     name='JOBRC' '='
     ('MAXRC'|'LASRRC'|
-    ('STEP,' value=[ExecStatement:ID] '.' ID))
+    ('(STEP,' ref=[ExecStatement:ID] '.' ID ')'))
     ;
 Lines:
     name='LINES' '='
@@ -167,8 +173,9 @@ Class:
     ;
 
 ExecStatement:
-    name=Start
-    'EXEC'
+    '//'
+    name=ID
+    oper='EXEC'
     param = ExecParameters
     comment=ID?
     ;
@@ -197,8 +204,8 @@ CondExec:
     name='COND'
     '='
     value+=('EVEN'|'ONLY')|
-    ((value+=INT ',' Operator (',' step+=[ExecStatement:ID])?)| 
-    ('(' value+=INT ',' Operator (',' step+=[ExecStatement:ID])? ')' (',' '(' value+=INT ',' Operator (',' step+=[ExecStatement:ID])? ')')* 
+    ((value+=INT ',' Operator (',' ref+=[ExecStatement:ID])?)| 
+    ('(' value+=INT ',' Operator (',' ref+=[ExecStatement:ID])? ')' (',' '(' value+=INT ',' Operator (',' ref+=[ExecStatement:ID])? ')')* 
     (',EVEN'|',ONLY')?))
     ;  
 Dynamnbr:
@@ -214,7 +221,7 @@ Parm:
 ParmDD:
     name='PARMDD'
     '='
-    value=[DDStatement:ID]
+    ref=[DDStatement:ID]
 ;
 
 Regionx:
@@ -238,17 +245,19 @@ Tvsamcom:
     value+=INT ',' value+=INT ')'
 ;
 
+
 DDStatement:
-    name=Start
-    'DD'
+    '//'
+    name=ID
+    oper='DD'
     param=(DDParameters | InlineDDParameters)
     comment=ID?
     continue+=ContinueDDStatement*
     ;
 
 ContinueDDStatement:
-    name=CONTINUE_STATEMENT
-    'DD'
+    start=CONTINUE_STATEMENT
+    oper= 'DD'
     param=DDParameters
     comment=ID?
     ;
@@ -490,12 +499,11 @@ Dskeylbl:
     ;
     
 Dsname:
-    name='DSNAME'|name='DSN'
-    '='
-    (('&&'? value+=ID ('.' value+=ID)* '(' ((member=ID)| ('&' set=[SetParameter])) ')')|
-    ('&&'? value+=ID ('.' value+=ID)*)|
-    value+='NULLFILE'|
-    ('*.' value+=[DDStatement:ID]))
+    name=('DSNAME'|'DSN')
+    (('=' '&&'? value+=ID ('.' value+=ID)* '(' ((member=ID)| ('&' set=[SetParameter:ID])) ')')|
+    ('=' '&&'? value+=ID ('.' value+=ID)*)|
+    ('=' value+='NULLFILE')|
+    ('=*.' dd+=[DDStatement:ID]))
     ;
     
 Dsntype:
@@ -813,9 +821,10 @@ Volume:
     ;
 
 SetStatement:
-    JES2_START
-    'SET'
-    name=SetParameters
+    '/*'
+    name=ID?
+    oper='SET'
+    param=SetParameters
     comment = ID?
     ;
 
@@ -827,7 +836,8 @@ SetParameter:
     name=ID '=' value=ComplexString;
 
 JobparmStatement:
-    name=Jes2_start
+    '/*'
+    'JOBPARM'
     param=JobparmParameters
     ;
 
@@ -878,24 +888,62 @@ SysaffParam infers Jobparm:
 TimeParam infers Jobparm:
     param=('TIME'|'T') '=' value=INT;
 
+ConditionStatements:
+    if=IfStatement
+    (step+=JobStep | cond+=ConditionStatements)*
+    else=EsleStatement?
+    (step+=JobStep | cond+=ConditionStatements)*
+    end=EndifStatement
+    ;
+
+EsleStatement:
+    ('//' name=ID | CONTINUE_STATEMENT )
+    operElse='ELSE'
+    comment = ID?
+    step+=JobStep*;
+
+
+EndifStatement:
+    ('//' name=ID | CONTINUE_STATEMENT )
+    operEnd='ENDIF'
+    comment = ID?;
+
+IfStatement: 
+    ('//' name=ID | CONTINUE_STATEMENT )
+    operIf='IF'
+    expr += Expression ((ExprLogicalOperator expr += Expression))*
+    operThen='THEN'
+    comment = ID?;
+
+Expression: ('(' name=ExprKeyword oper=ExprComparisonOperator value=INT ')') |
+(name=ExprKeyword oper=ExprComparisonOperator value=INT);
+
+ExprComparisonOperator returns string: 'GT' | 'LT' | 'NG' | 'NL' | 'EQ' | 'NE' |'GE' | 'LE' |
+    '>' | '<' | '¬>' | '¬<' | '=' | '¬=' | '>=' | '<=';
+
+ExprLogicalOperator returns string: 'AND' |'OR';
+
+ExprKeyword returns string: 'RC' | 'ABEND' | 'ABENDCC' | 'RUN'  ;
+//ExprKeyword: (ref=[ExecStatement:ID] '.')? 'RC' | 'ABEND' | 'ABENDCC' | 'RUN'  ;
+
 Operator returns string: 'GT'|'GE'|'EQ'|'LT'|'LE'|'NE';
 
 UserEmail returns string: ID '@' ID '.' ID;
-Start: start=START name=ID;
-Jes2_start: start=JES2_START name='JOBPARM';
+//Start: START name=ID;
 ComplexString returns string: ('"'|'{'|"'"|'(')+ ID ((','|'.'|'/')? ID)* ('"'|'}'|"'"|')')+; 
 
 
 terminal INLINE_DD: /(\*|(DATA))\s*\r?\n/;
-terminal INLINE_DD_VALUE: /INLINE\r?\n/;
+terminal INLINE_DD_VALUE: /%{70}\r?\n/;
 hidden terminal WS: /\s+/;
 terminal INT returns string: /[0-9]+/ ;
 //terminal ACCOUNT:/['({$@#A-Z0-9][\/,'(){}A-Z0-9_$@#]*[')}$@#A-Z0-9]/;
 //terminal PROGRAMMER: /[A-Z0-9'][A-Z0-9'.\/\s\d]*[A-Z0-9']/;
 hidden terminal SL_COMMENT: /\/\/\*.*\r?\n/;
+terminal CONDITIONAL_EXPRESSION_CONTINUE: /\/\/\s{4}/;
+terminal EMPTY_STATEMEMT: /\/\*\s\r?\n/;
 terminal CONTINUE_STATEMENT: /\/\/\s/;
-terminal START: /\/\//;
-terminal JES2_START: /\/\*/;
+//terminal START: /\/\//;
 terminal ID:/[$#@a-zA-Z][a-zA-Z0-9$@#]*/;
 terminal STR_BEGIN: /"|{|'|\(/;
 terminal STR_END: /"|}|'|\)/;

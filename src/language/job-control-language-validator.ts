@@ -35,10 +35,10 @@ export class JobControlLanguageValidator {
     //         }
     //     }
     // }
-    checkCardNameLength(card: JobStatement|ExecStatement|DDStatement, accept: ValidationAcceptor): void {
-        console.log(card.name, card.$type)
-        if (card.name.name) {
-            if (card.name.name.length > 10) {
+    // checkCardNameLength(card: JobStatement|ExecStatement|DDStatement, accept: ValidationAcceptor): void {
+    checkCardNameLength(card: JobStatement|DDStatement|ExecStatement, accept: ValidationAcceptor): void {    
+        if (card.name) {
+            if (card.name.length > 10) {
                 accept('warning', 'Jcl card name should be max 8 char', {node: card, property: 'name' });
             }
         }
