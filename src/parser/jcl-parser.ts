@@ -32,7 +32,7 @@ export class JclLexer extends DefaultLexer {
                 }
 
                 // let newLine = '%'.repeat(72-eol.length)+eol;
-                let newLine = '%'.repeat(70)+eol;
+                let newLine = '%'.repeat(line.length-3)+eol;
                 return newLine;
                 
             };

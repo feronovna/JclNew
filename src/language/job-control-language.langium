@@ -1,17 +1,20 @@
 grammar JobControlLanguage
 
 entry JclProgram:
-    job=JobStatement 
-    jobparm=JobparmStatement?
+    job+=JobStatement 
+    jobparm+=JobparmStatement?
     set+= SetStatement?
-    (step+=JobStep|step+=ConditionStatements|set+=SetStatement)+
+    (exec+=ExecStatement|
+    (dd+=DDStatement continue+=ContinueDDStatement*)|
+    set+=SetStatement|
+    cond+=CondTest|
+    proc+=InstreamProcStatement)*
     ;
 
-
-JobStep:
-    exec=ExecStatement
-    dd+=DDStatement*
-    ;
+CondTest:
+    IfStatement (cond+=CondTest|(exec+=ExecStatement dd+=DDStatement* continue+=ContinueDDStatement*)|set+=SetStatement)* 
+    (ElseStatement (cond+=CondTest|(exec+=ExecStatement dd+=DDStatement* continue+=ContinueDDStatement*)|set+=SetStatement)*)? 
+    EndifStatement;
 
 JobStatement:
     '//'
@@ -245,6 +248,14 @@ Tvsamcom:
     value+=INT ',' value+=INT ')'
 ;
 
+InstreamProcStatement:
+    '//'
+    name=ID
+    oper='PROC'
+    (cond+=CondTest|(exec+=ExecStatement dd+=DDStatement* continue+=ContinueDDStatement*)|set+=SetStatement)* 
+    '//'
+    'PEND'
+    ;
 
 DDStatement:
     '//'
@@ -252,7 +263,6 @@ DDStatement:
     oper='DD'
     param=(DDParameters | InlineDDParameters)
     comment=ID?
-    continue+=ContinueDDStatement*
     ;
 
 ContinueDDStatement:
@@ -812,16 +822,19 @@ Unit:
     ;
     
 Volume:
-    name='VOLUME'|'VOL'
-    '='
-    ( '(' 'PRIVATE' ',' 'RETAIN' ',' seqNumber=INT ',' count=INT ')' )|
-    ('SER=' value+=INT) |
-    ('(SER=' value+=INT (',' value+=INT)* ')')|
-    ('REF=' value+=ID|('*.' value+=ID))
+    name=('VOLUME='|'VOL=')
+    ('PRIVATE'|
+    ( ('(' 'PRIVATE'? ',' 'RETAIN'? ',' seqNumber=INT? ',' count=INT? ',')? 
+    (('SER=' value+=ALFANUM) |
+    ('SER=(' value+=ALFANUM (',' value+=ALFANUM)+ ')')|
+    ('REF=' (("'" value+=ALFANUM "'")|
+    ('*.' refDD+=[DDStatement:ID] ('.' refExec=[ExecStatement:ID] ('.' procStep=ID)?)?)|
+    ('*.' RefDD+=[DDStatement:ID] '.' refProc=[InstreamProcStatement:ID] '.' refProcStep=[ExecStatement:ID])
+    )))))
     ;
 
 SetStatement:
-    '/*'
+    '//'
     name=ID?
     oper='SET'
     param=SetParameters
@@ -873,8 +886,8 @@ NologParam infers Jobparm:
 PagesParam infers Jobparm:
     param=('PAGES'|'G') '=' value=INT;
 
-ProclibParam infers Jobparm:
-    param=('PROCLIB'|'P') '=' value=INT; //[DDStatement:ID];
+ProclibParam :
+    param=('PROCLIB'|'P') '=' value=[DDStatement:ID];
 
 RestartParam infers Jobparm:
     param=('RESTERT'|'E') '=' value=('Y'|'N');
@@ -888,65 +901,90 @@ SysaffParam infers Jobparm:
 TimeParam infers Jobparm:
     param=('TIME'|'T') '=' value=INT;
 
-ConditionStatements:
-    if=IfStatement
-    (step+=JobStep | cond+=ConditionStatements)*
-    else=EsleStatement?
-    (step+=JobStep | cond+=ConditionStatements)*
-    end=EndifStatement
-    ;
 
-EsleStatement:
-    ('//' name=ID | CONTINUE_STATEMENT )
-    operElse='ELSE'
-    comment = ID?
-    step+=JobStep*;
+ElseStatement:
+    ('//' name=ID | start=CONTINUE_STATEMENT )
+    oper='ELSE'
+    comment = ID?;
 
 
 EndifStatement:
-    ('//' name=ID | CONTINUE_STATEMENT )
-    operEnd='ENDIF'
+    ('//' name=ID | start=CONTINUE_STATEMENT )
+    oper='ENDIF'
     comment = ID?;
+
 
 IfStatement: 
-    ('//' name=ID | CONTINUE_STATEMENT )
-    operIf='IF'
-    expr += Expression ((ExprLogicalOperator expr += Expression))*
-    operThen='THEN'
-    comment = ID?;
+    (start=CONTINUE_STATEMENT | '//' name=ID )
+    oper+='IF'
+    expr=Expression
+    oper+='THEN'
+    comment = ID?
+    ;
 
-Expression: ('(' name=ExprKeyword oper=ExprComparisonOperator value=INT ')') |
-(name=ExprKeyword oper=ExprComparisonOperator value=INT);
+
+Expression : AndExpression;
+
+AndExpression infers Expression: OrExpression 
+    ({ infer AndExpression.left=current} 
+    op=('AND' | '&' | AndExprContinue) 
+    right=OrExpression)*;
+
+OrExpression infers Expression: SimpleExpression 
+    ({ infer OrExpression.left=current} 
+    op=('OR' | '|' | OrExprContinue) 
+    right=SimpleExpression)*;
+
+SimpleExpression infers Expression:
+    '(' Expression ')'|
+    NotExpression|
+    RCExpression |
+    RunExpression |
+    AbendExpression |
+    AbendCCExpression
+    ;
+
+RCExpression infers RelationalExpression:
+    (ref=[ExecStatement:ID] '.')? name='RC' oper=ExprComparisonOperator value=INT;
+
+RunExpression infers RelationalExpression: 
+    name='RUN' oper=ExprComparisonOperator value=('TRUE'|'FALSE');
+
+AbendExpression infers RelationalExpression: 
+    (ref=[ExecStatement:ID] '.')? name='ABEND' oper=ExprComparisonOperator value=('TRUE'|'FALSE');
+
+AbendCCExpression infers RelationalExpression:
+    (ref=[ExecStatement:ID] '.')? name='ABENDCC' oper=ExprComparisonOperator value=AbendCCCode;
+
+NotExpression: op=('¬'|'NOT') expr=Expression;
+    
 
 ExprComparisonOperator returns string: 'GT' | 'LT' | 'NG' | 'NL' | 'EQ' | 'NE' |'GE' | 'LE' |
     '>' | '<' | '¬>' | '¬<' | '=' | '¬=' | '>=' | '<=';
 
-ExprLogicalOperator returns string: 'AND' |'OR';
-
-ExprKeyword returns string: 'RC' | 'ABEND' | 'ABENDCC' | 'RUN'  ;
-//ExprKeyword: (ref=[ExecStatement:ID] '.')? 'RC' | 'ABEND' | 'ABENDCC' | 'RUN'  ;
-
 Operator returns string: 'GT'|'GE'|'EQ'|'LT'|'LE'|'NE';
 
 UserEmail returns string: ID '@' ID '.' ID;
-//Start: START name=ID;
+
+AndExprContinue returns string: AND_EXPRESSION_CONTINUE CONTINUE_STATEMENT;
+OrExprContinue returns string: OR_EXPRESSION_CONTINUE CONTINUE_STATEMENT;
+
 ComplexString returns string: ('"'|'{'|"'"|'(')+ ID ((','|'.'|'/')? ID)* ('"'|'}'|"'"|')')+; 
 
-
+AbendCCCode returns string: 'U' INT|'S' ID;
+terminal INT: /\d+/ ;
+terminal ID: /[$@#_a-zA-Z][\w_$@#]*/;
+terminal ALFANUM: /[$@#\w0-9]+/;
 terminal INLINE_DD: /(\*|(DATA))\s*\r?\n/;
-terminal INLINE_DD_VALUE: /%{70}\r?\n/;
+terminal INLINE_DD_VALUE: /%+\r?\n/;
 hidden terminal WS: /\s+/;
-terminal INT returns string: /[0-9]+/ ;
-//terminal ACCOUNT:/['({$@#A-Z0-9][\/,'(){}A-Z0-9_$@#]*[')}$@#A-Z0-9]/;
-//terminal PROGRAMMER: /[A-Z0-9'][A-Z0-9'.\/\s\d]*[A-Z0-9']/;
-hidden terminal SL_COMMENT: /\/\/\*.*\r?\n/;
+hidden terminal SL_COMMENT: /\/\/\*.{0,69}/;
 terminal CONDITIONAL_EXPRESSION_CONTINUE: /\/\/\s{4}/;
-terminal EMPTY_STATEMEMT: /\/\*\s\r?\n/;
-terminal CONTINUE_STATEMENT: /\/\/\s/;
-//terminal START: /\/\//;
-terminal ID:/[$#@a-zA-Z][a-zA-Z0-9$@#]*/;
+hidden terminal EMPTY_STATEMEMT: /\/\*\s*\r?\n/;
+terminal CONTINUE_STATEMENT: /\/\/\s+/;
 terminal STR_BEGIN: /"|{|'|\(/;
 terminal STR_END: /"|}|'|\)/;
+terminal AND_EXPRESSION_CONTINUE: /(AND|&)\s*\r?\n/;
+terminal OR_EXPRESSION_CONTINUE: /(OR|\|)\s*\r?\n/;
 terminal NL_CONTINUE: /,\s*\r?\n/;
-
-//terminal STRING_TERM: /("(""|\\.|[^"\\])*"|'(''|\\.|[^'\\])*')/;
+terminal EXPR_CONTINUE: /OR\s*\r?\n/;

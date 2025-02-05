@@ -8,7 +8,7 @@ import { JclDocumentValidator } from './job-control-language-document-validator.
 //import { JclReferences } from '../references/jcl-references.js';
 //import { JclScopeComputation } from '../references/jcl-scope-computation.js';
 import { JclScopeProvider } from '../references/jcl-scope-provider.js';
-//import { JclDocumentationProvider } from '../documentation/jcl-documentation-provider.js';
+import { JclDocumentationProvider } from '../documentation/jcl-documentation-provider.js';
 import { JclSemanticTokenProvider } from '../lsp/jcl-semantic-highlighting.js';
 import { JclCompletionProvider } from '../lsp/jcl-completion-provider.js';
 
@@ -33,9 +33,9 @@ export type JobControlLanguageServices = LangiumServices & JobControlLanguageAdd
  * selected services, while the custom services must be fully specified.
  */
 export const JobControlLanguageModule: Module<JobControlLanguageServices, PartialLangiumServices & JobControlLanguageAddedServices> = {
-    // documentation: {
-    //     DocumentationProvider: services => new JclDocumentationProvider(services)
-    // },
+    documentation: {
+        DocumentationProvider: services => new JclDocumentationProvider(services)
+    },
     validation: {
         JobControlLanguageValidator: () => new JobControlLanguageValidator(),
         DocumentValidator: services => new JclDocumentValidator(services)

@@ -1,11 +1,11 @@
 import { AstNode } from 'langium';
 import { AbstractSemanticTokenProvider, SemanticTokenAcceptor } from 'langium/lsp';
-import { isInlineDDParameters, isSetParameter, isDDParameters, isDDStatement, isJobStatement, isExecStatement, isContinueDDStatement } from '../language/generated/ast.js';
+import { isSetStatement, isInlineDDParameters, isSetParameter, isDDParameters, isDDStatement, isJobStatement, isExecStatement, isContinueDDStatement, isIfStatement, isElseStatement, isEndifStatement } from '../language/generated/ast.js';
 import { SemanticTokenTypes } from 'vscode-languageserver';
 
 export class JclSemanticTokenProvider extends AbstractSemanticTokenProvider {
     protected override highlightElement(node: AstNode, acceptor: SemanticTokenAcceptor): void | undefined | 'prune' {
-        if (isJobStatement(node) || isExecStatement(node) ||isDDStatement(node) ) {
+        if (isSetStatement(node)|| isJobStatement(node) || isExecStatement(node) ||isDDStatement(node) || isIfStatement(node) || isElseStatement(node) || isEndifStatement(node)) {
             acceptor({
                 node,
                 property: 'name',
@@ -15,18 +15,23 @@ export class JclSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 node,
                 property: 'oper',
                 type: SemanticTokenTypes.macro
-            });        
-        } else if (isSetParameter(node) || isDDParameters(node)) {
+            });    
             acceptor({
                 node,
-                property: 'name',
-                type: SemanticTokenTypes.interface
-            });
+                property: 'comment',
+                type: SemanticTokenTypes.comment
+            });      
         } else if (isInlineDDParameters(node)) {
             acceptor({
                 node,
                 property: 'value',
-                type: SemanticTokenTypes.comment
+                type: SemanticTokenTypes.variable
+            });
+        } else if (isDDParameters(node) || isSetParameter(node)) {
+            acceptor({
+                node,
+                property: 'name',
+                type: SemanticTokenTypes.class
             });
         } else if (isContinueDDStatement(node)) {
             acceptor({
@@ -34,19 +39,11 @@ export class JclSemanticTokenProvider extends AbstractSemanticTokenProvider {
                 property: 'oper',
                 type: SemanticTokenTypes.macro
             });
-        // } else if (isEndStatement(node)) {
-        //     const container = node.$container;
-        //     acceptor({
-        //         node,
-        //         property: 'label',
-        //         type: isProcedureStatement(container) ? SemanticTokenTypes.function : SemanticTokenTypes.variable
-        //     })
-        // } else if (isLabelReference(node)) {
-        //     acceptor({
-        //         node,
-        //         property: 'label',
-        //         type: SemanticTokenTypes.variable
-        //     })
+            acceptor({
+                node,
+                property: 'comment',
+                type: SemanticTokenTypes.comment
+            }); 
         // } else if (isProcedureCall(node)) {
         //     acceptor({
         //         node,
