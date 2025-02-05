@@ -6,7 +6,7 @@ import { JclLexer } from '../parser/jcl-parser.js';
 import { JclDocumentValidator } from './job-control-language-document-validator.js';
 //import { JclNameProvider} from '../references/jcl-name-provider.js';
 //import { JclReferences } from '../references/jcl-references.js';
-//import { JclScopeComputation } from '../references/jcl-scope-computation.js';
+import { JclScopeComputation } from '../references/jcl-scope-computation.js';
 import { JclScopeProvider } from '../references/jcl-scope-provider.js';
 import { JclDocumentationProvider } from '../documentation/jcl-documentation-provider.js';
 import { JclSemanticTokenProvider } from '../lsp/jcl-semantic-highlighting.js';
@@ -44,7 +44,7 @@ export const JobControlLanguageModule: Module<JobControlLanguageServices, Partia
        Lexer: services => new JclLexer(services)
     },
     references: {
-        //ScopeComputation: services => new JclScopeComputation(services)
+        ScopeComputation: services => new JclScopeComputation(services),
         ScopeProvider: services => new JclScopeProvider(services)
         //NameProvider: () => new JclNameProvider(),
         //References: services => new JclReferences(services)
